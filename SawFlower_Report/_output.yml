@@ -1,0 +1,20 @@
+bookdown::gitbook:
+  css: style.css
+  template: template/cscrs.html
+  split_by: none
+  self_contained: true
+  pandoc_args: [ "--csl", "citation/apa.csl" ]
+  config:
+    toc:
+      before: |
+        <li><a href="./">Most Important Study</a></li>
+bookdown::pdf_book:
+  template: template/template.tex
+  includes:
+    in_header: preamble.tex
+  citation_package: natbib
+  latex_engine: pdflatex
+  keep_tex: yes
+bookdown::word_document2:
+  toc: false
+  reference_docx: template/Word-Bookdown-Template.docx
