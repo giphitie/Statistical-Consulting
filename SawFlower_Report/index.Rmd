@@ -1,16 +1,16 @@
 --- 
 title: "Spacial and Temporal analysis of Flowers by 5 Grid"
-subtitle: "Prepared for: Ermatinger Lochlin"
+subtitle: "Prepared for Ermatinger Lochlin"
 author: 
 - Primary Statistician, Statistician
 - Secondary Statistician, Statistician
 - Director Name, Director
 authors: 
-  name: Primary Statistician  
+  name: Will Hammond and Gifty Osei 
   affiliation: Statistical Consulting and Research Services  
 
 secondary: 
-  name: Secondary Statistician
+  name: Riley
   affiliation: Statistical Consulting and Research Services
 director:  
   name: Director Name
@@ -70,41 +70,41 @@ library(tibble)
 suppressMessages(library(stringr))
 ```
 
-# Prerequisites
 
-This is a _sample_ book written in **Markdown**. You can use anything that Pandoc's Markdown supports, e.g., a math equation $a^2 + b^2 = c^2$.
-
-The **bookdown** package can be installed from CRAN or Github:
-
-```{r eval=FALSE}
-install.packages("bookdown")
-# or the development version
-# devtools::install_github("rstudio/bookdown")
-```
-
-Remember each Rmd file contains one and only one chapter, and a chapter is defined by the first-level heading `#`.
-
-To compile this example to PDF, you need XeLaTeX. You are recommended to install TinyTeX (which includes XeLaTeX): <https://yihui.name/tinytex/>.
-
-```{r include=FALSE}
-# automatically create a bib database for R packages
-knitr::write_bib(c(
-  .packages(), 'bookdown', 'knitr', 'rmarkdown'
-), 'packages.bib')
-```
 
 # Introduction {#intro}
 
-You can label chapter and section titles using `{#label}` after them, e.g., we can reference Chapter \@ref(intro). If you do not manually label them, there will be automatic labels anyway, e.g., Chapter \@ref(prerequisites).
+Montana's most important region of wheat production is colloquially referred to as the Golden Triangle(GT). The area owes its agricultural prominence to the grasslands that they were converted from. It has been estimated that 73$\%$ of the grassland that were present in the GT prior ro European settlement of region have been lost to land conversion. In the case of wheat production, the balance between an insect pest of wheat (the wheat stem sawfly) and its natural enemies has been disrupted, resulting in epidemic outbreaks of wheat steam sawfly(WSS) infestation in wheat fields.The specialist parasitoids B. cephi and B. lissogaster require a WSS larvae feeding inside a grass or wheat stem as host for their offspring. They also require diets rich in carbohydrates and other nutrients compounds to achieve maximum livelihood and increase traits associated with fecundity. Because little is known about the floral resources that may be important to the parasitoids, a two year survey was conducted of an intact grassland plot(12 ha) located within the GT. During each survey(~6 per season, every two weeks) we recorded the location, species, and quantity of actively flowering plants encountered. We also retrieved LiDAR digital elevation model and daily weather observations to model the spatiotemporal context of our observed flowering plants. This model may help us to understand which species of flora warrant further investigation as supplemental resources for the specialist parasitoids of WSS based on their temporal alignment with the braconids's phenology and observed spatial distribution. We anticipate the culmination of this project will help inform future research on providing supplemental nutrition to parasitoids of WSS in the field setting. We would like to identify plants native to our study region that may provide the parasitoids with similar benefits to that of buck wheat and cowpea. 
+
+
+
+## Data Collection 
+
+Surveys of flowering plants were conducted on a 12-ha relic grassland located on the northern Agricultural Research Center (NARC), south of Havre, Montana. The mean annual precipitation recorded in Havre over the past 30 years is 305 mm and the average temperature is 9 degress C. This grassland site has been protected from development and livestock grazing since 1916, making the present flora similar to what may inhabit analogous areas in the absence of anthropogenic factors.
+
+Trips to the site were made every two weeks between June and September of 2019 and 2020. Belt transects 10 meters wide running the length of the site were plotted. The distance between each transect was also 10 meters, effectively meaning half of the site was surveyed. The lowland areas in the center of the plot was excluded due to the difficulty of sampling presented by the dense vegetation. Surveys consisted of the GPS location, species, and quantity of the actively flowering plants. To diminish impacts on the area and plant disturbances, photos were taken for later species identification. Sampling locations were resampled to a 5 meter grid to account for unknown spatial accuracy of the GPS unit used (Garmin Oregon 450). In total we collected 9720 point observations of actively flowering plants from 61 different species. Each point observation consists of the specie(s) observed, status of species in Montana (i.e. weed, native, species of concern, etc...) quantity of species, latitude, longitude , date the observation was recorded.
+
+
+# Data Description and Methods
+
+The data that were used for this paper came from three primary sources. The first is a list of all flower species that were found on the plot of land the data were collected from. There were 65 species, each of which had their scientific and common names included, as well as a Montana Field Guide Conservation Score. This score takes on integer values from 0 to 5, indicating how well each species can respond to changes in the surrounding environment. One of the filters that was used for determining ideal candidate species was having a score of 2 or 3, which indicates that a species can grow in a wide range of environments and adapt well to changes, but is not invasive either.
+
+
+\newline The second file contains weather data for a station near the plot of land. For each day in 2019 and 2020, information is included for mean air temperature in degrees Celsius, mean soil temperature in degrees Celsius at depths of 0, 4, 8, 20 and 36 inches and millimeters of precipitation received. When calculating growing degree days, the difference between mean daily temperature and a particular threshold temperature (0 and 4 degrees Celsius were considered) is the value for growing degree days for a given day if that value is positive and 0 otherwise. Values for growing degree days for each day as well as cumulative growing degree days for a year were calculated.
+
+
+\newline For six dates in 2019 and five dates in 2020, data were collected at numerous different points throughout the plot. Within a certain distance of each of these points, which was typically a few meters, it was noted which flower species were present and in what quantity. The notable variables included x and y coordinates, mean elevation in feet, mean aspect, which takes on a value from 0 to 360 and corresponds to which direction the slope faces, mean slope in degrees and mean roughness.
+
+
 
 
 # Body of the report
 
-When writing your report it is important to use proper header levels. Each main section should start with one octothorpe ("#"). Sub-sections should start with two octothorpes ("##"), and so on. Make sure there is a space after each octothorpe and before the section title.
+
 
 ## Including Figures and Tables created by R code
 
-Figures and tables with captions will be placed in `figure` and `table` environments, respectively.
+
 
 ### Adding a Figure
 

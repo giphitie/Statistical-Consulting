@@ -1,0 +1,16 @@
+fig:nice-fig
+tab:nice-tab
+fig:unnamed-chunk-4
+prerequisites
+intro
+data-description-and-methods
+body-of-the-report
+including-figures-and-tables-created-by-r-code
+adding-a-figure
+adding-a-table
+including-graphics-or-figures-not-created-by-r
+including-citations
+packages-used
+references
+data-collection
+fig:unnamed-chunk-2
