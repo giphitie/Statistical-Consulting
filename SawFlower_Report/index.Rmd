@@ -93,7 +93,8 @@ The data that were used for this paper came from three primary sources. The firs
 \newline The second file contains weather data for a station near the plot of land. For each day in 2019 and 2020, information is included for mean air temperature in degrees Celsius, mean soil temperature in degrees Celsius at depths of 0, 4, 8, 20 and 36 inches and millimeters of precipitation received. When calculating growing degree days, the difference between mean daily temperature and a particular threshold temperature (0 and 4 degrees Celsius were considered) is the value for growing degree days for a given day if that value is positive and 0 otherwise. Values for growing degree days for each day as well as cumulative growing degree days for a year were calculated.
 
 
-\newline For six dates in 2019 and five dates in 2020, data were collected at numerous different points throughout the plot. Within a certain distance of each of these points, which was typically a few meters, it was noted which flower species were present and in what quantity. The notable variables included x and y coordinates, mean elevation in feet, mean aspect, which takes on a value from 0 to 360 and corresponds to which direction the slope faces, mean slope in degrees and mean roughness.
+\newline For six dates in 2019 and five dates in 2020, data were collected at numerous different points throughout the plot. Within a certain distance of each of these points, which was typically a few meters, it was noted which flower species were present and in what quantity. The notable variables included x and y coordinates, mean elevation in feet, mean aspect, which takes on a value from 0 to 360 and corresponds to which direction the slope faces, mean slope in degrees and mean roughness. 
+#what is roughness, possible values and units
 
 
 
