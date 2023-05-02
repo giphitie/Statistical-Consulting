@@ -71,7 +71,6 @@ suppressMessages(library(stringr))
 ```
 
 
-
 # Introduction {#intro}
 
 Montana's most important region of wheat production is colloquially referred to as the Golden Triangle(GT). The area owes its agricultural prominence to the grasslands that they were converted from. It has been estimated that 73$\%$ of the grassland that were present in the GT prior ro European settlement of region have been lost to land conversion. In the case of wheat production, the balance between an insect pest of wheat (the wheat stem sawfly) and its natural enemies has been disrupted, resulting in epidemic outbreaks of wheat steam sawfly(WSS) infestation in wheat fields.The specialist parasitoids B. cephi and B. lissogaster require a WSS larvae feeding inside a grass or wheat stem as host for their offspring. They also require diets rich in carbohydrates and other nutrients compounds to achieve maximum livelihood and increase traits associated with fecundity. Because little is known about the floral resources that may be important to the parasitoids, a two year survey was conducted of an intact grassland plot(12 ha) located within the GT. During each survey(~6 per season, every two weeks) we recorded the location, species, and quantity of actively flowering plants encountered. We also retrieved LiDAR digital elevation model and daily weather observations to model the spatiotemporal context of our observed flowering plants. This model may help us to understand which species of flora warrant further investigation as supplemental resources for the specialist parasitoids of WSS based on their temporal alignment with the braconids's phenology and observed spatial distribution. We anticipate the culmination of this project will help inform future research on providing supplemental nutrition to parasitoids of WSS in the field setting. We would like to identify plants native to our study region that may provide the parasitoids with similar benefits to that of buck wheat and cowpea. 
@@ -93,12 +92,47 @@ The data that were used for this paper came from three primary sources. The firs
 \newline The second file contains weather data for a station near the plot of land. For each day in 2019 and 2020, information is included for mean air temperature in degrees Celsius, mean soil temperature in degrees Celsius at depths of 0, 4, 8, 20 and 36 inches and millimeters of precipitation received. When calculating growing degree days, the difference between mean daily temperature and a particular threshold temperature (0 and 4 degrees Celsius were considered) is the value for growing degree days for a given day if that value is positive and 0 otherwise. Values for growing degree days for each day as well as cumulative growing degree days for a year were calculated.
 
 
-\newline For six dates in 2019 and five dates in 2020, data were collected at numerous different points throughout the plot. Within a certain distance of each of these points, which was typically a few meters, it was noted which flower species were present and in what quantity. The notable variables included x and y coordinates, mean elevation in feet, mean aspect, which takes on a value from 0 to 360 and corresponds to which direction the slope faces, mean slope in degrees and mean roughness.
+\newline For six dates in 2019 and five dates in 2020, data were collected at numerous different points throughout the plot. Within a certain distance of each of these points, which was typically a few meters, it was noted which flower species were present and in what quantity. The notable variables included x and y coordinates, mean elevation in feet, mean aspect, which takes on a value from 0 to 360 and corresponds to which direction the slope faces, mean slope in degrees and mean roughness. For the purpose of modeling, aspect was transformed to an indicator for north facing slopes. That is, 1 if the mean aspect was between 0 and 90 or 270 and 360, and 0 otherwise.
 
+# Poisson Point Process Models
 
+An inhomogenous poisson point process model was used to glean insights to the distribution of species in terms of favorable or unfavorable terrain characteristics. The approach used was to fit an individual model for each species. These models are based on two main assumptions: 
 
+1. Observed points are independent of each other. That is, the presence of one point in a region, $B \subset \mathbb{R}^2$, is not related to the presence of other points in the same region.
 
-# Body of the report
+2. The number of points (flower observations) within a region,B, has a poisson distribution, and the expected count of points within a region is = $\int_{region}\lambda(u)du$, where $\lambda(u)$ is the intensity (average number of points per unit area) of points at the location $u \in B$.
+
+Each model produces an intensity surface across the survey area according to log-linear poisson likelihood, where the points $u$ correspond to pixels in the survey area.
+
+$$P(N(u)) \sim Pois(\lambda(u))$$
+
+To estimate the intensity with respect to the terrain covariates we use a log-linear intensity function:
+
+$$ \lambda(u)=exp(\beta_0 + \beta_1aspect_u + \beta_2slope_u + \beta_3roughness_u) $$
+
+Here, the log-linear intensity function imposes another assumption, that intensity increases or decreases exponentially as a function of aspect, slope, and roughness. 
+
+Aspect was defined as a 1 for northfacing areas and 0 for south facing areas. The coefficients $\beta$ represent the expected increase in log-intensity for a 1 unit increase in the corresponding variable (aspect, roughness, slope). $\beta$ with large magnitude represent strong underlying relationships with terrain covariates for a given species, while $\beta$ close to 0 indicate that the species is relatively unaffected by the terrain covariate.  
+
+The model coefficients then represent estimates of the relationship between a species presence at a given location with observed terrain characteristics. For the context of understanding the individual terrain preferences of a species, the magnitude of the estimated coefficients represent the relative importance of a particular terrain covariate. For example, a species with a large estimated coefficient on aspect is more likely to grow on a north facing slope. To identify species which will grow well on any given terrain, species with low-magnitude coefficients should be prioritized.
+
+# Limitations
+
+There is likely some large violation of the assumption of point-wise independence. From visual investigation of flower observations, there is evidence of some clustering, especially with respect to those species with limited observations. We recommend limiting inferences from this modeling approach to species with many observations that don't appear to violate the assumption of independence. Although not considered here, Ripley's K-function can quantify the degree of clustering for a given species. 
+
+The assumption of a log-linear intensity with respect to terrain covariates limits the intensity to be exponential and uni-directional as a function of a given terrain covariate. This means that for a given species, the relationship between a particular terrain covariate and the estimated intensity can only increase or decrease in an exponential form. Considering that a species may have an "optimal" terrain type, future work should aim to fit a similar model that includes polynomial terrain coefficients, for example, $roughness^2$. The introduction of polynomial predictors will allow for bi-directional intensities as a function fo particular terrain covariates.
+
+Additionally, interaction terms were not considered in these models, although the true existance of interaction effects may exist. For example slope may mediate the relationship of intensity with roughness. That is, a species may grow poorly on rough terrain with a low slope, but may grow particularly well on rough terrain with a high slope. Future modeling should consider the existance of interaction effects between terrain covariates. 
+
+# Results
+
+Given the sparsity of some species, we limit inferences from the modeling approach to species with greater than 50 observations. 
+
+```{r}
+load("flower_df_final.RData")
+
+print(flower_inf_50)
+```
 
 
 

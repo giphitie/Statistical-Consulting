@@ -14,3 +14,7 @@ packages-used
 references
 data-collection
 fig:unnamed-chunk-2
+fig:unnamed-chunk-3
+poisson-point-process-models
+limitations
+results
