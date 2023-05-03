@@ -18,3 +18,9 @@ fig:unnamed-chunk-3
 poisson-point-process-models
 limitations
 results
+spatial-distribution-of-species
+temporal-flowering-patterns
+spatially-and-temporally-relevant-species
+appendix
+fig:unnamed-chunk-5
+fig:unnamed-chunk-6

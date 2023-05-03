@@ -52,7 +52,7 @@ knitr::opts_chunk$set(echo = TRUE, cache = FALSE, message = FALSE,
 # automatically create a bib database for R packages, list used packages here
 knitr::write_bib(c(
   .packages(), 'bookdown', 'knitr', 'rmarkdown', 'readr', 'readxl', 'dplyr', 'mosaic',
-  'nlme', 'yarrr', 'predictmeans','tibble', 'ggplot2', 'effects'), 'packages.bib')
+  'nlme', 'yarrr', 'predictmeans','tibble', 'ggplot2', 'effects', 'kableExtra', 'ggridges', 'spatstat'), 'packages.bib')
 ```
 
 ```{r echo=F}
@@ -67,7 +67,13 @@ library(nlme)
 library(predictmeans)
 library(effects)
 library(tibble)
+library(kableExtra)
+library(ggridges)
+library(spatstat)
 suppressMessages(library(stringr))
+
+#load R Data
+load("flower_df_final.RData")
 ```
 
 
@@ -85,40 +91,17 @@ This research describes surveys of flowering plants conducted in a 12-hectare gr
 
 This analysis utilized data from three primary sources: a list of flower species found on the plot of land, weather data for a nearby station, and data collected at numerous points on the plot. The flower species list contained 65 species, their scientific and common names, and a conservation score. Weather data for each day in 2019 and 2020 included mean air and soil temperature and precipitation received, used to calculate growing degree days. Data collected at numerous points on the plot included flower species and quantity, as well as variables such as x and y coordinates, mean elevation, aspect, slope, and roughness. Aspect was transformed into an indicator for north facing slopes.
 
+```{r, fig.cap = "Plot of flower observations across the survey area. Colors correspond to individual species.", echo = FALSE}
 
+vis_plot
 
-```{r}
-## load data
-library(readxl)
-library(stringr)
-library(lubridate)
-library(readr)
-library(tidyverse)
-library(ggridges)
-points_terrain <- read_xlsx("D:/MSU/Spring 23/Stat 575/pointsAndTerrain_tbl.xlsx")
-weather <- read.csv("D:/MSU/Spring 23/Stat 575/MT_Mesonet_havrenmt_daily_data.csv")
-names(weather) <- c("station", "datetime", "Air.Temperature", "Precipitation", "SoilTemp0in", "SoilTemp4in","SoilTemp8in","SoilTemp20in","SoilTemp36in")
-species_key <- read_xlsx("D:/MSU/Spring 23/Stat 575/SpeciesList.xlsx", sheet = 1, skip = 1)
-species_key <- species_key[,c(2, 4:8)]
-
-
-## Some plots
-ggplot(points_terrain, aes(x = X, y = Y, color = Spp ))+geom_point(alpha = 0.5)+theme(legend.position="none")+theme_bw()
-
-
-## from the weather data
-
-
-
-## from the species data
 
 
 ```
 
+## Poisson Point Process Models
 
-# Poisson Point Process Models
-
-An inhomogenous poisson point process model was used to glean insights to the distribution of species in terms of favorable or unfavorable terrain characteristics. The approach used was to fit an individual model for each species. [@banerjee2014hierarchical] These models are based on two main assumptions: 
+An inhomogenous poisson point process model was used to glean insights to the distribution of species in terms of favorable or unfavorable terrain characteristics. The approach used was to fit an individual model for each species. [@banerjee2014hierarchical] [@braddeleybook] These models are based on two main assumptions: 
 
 1. Observed points are independent of each other. That is, the presence of one point in a region, $B \subset \mathbb{R}^2$, is not related to the presence of other points in the same region.
 
@@ -132,13 +115,13 @@ To estimate the intensity with respect to the terrain covariates we use a log-li
 
 $$ \lambda(u)=exp(\beta_0 + \beta_1aspect_u + \beta_2slope_u + \beta_3roughness_u) $$
 
-Here, the log-linear intensity function imposes another assumption, that intensity increases or decreases exponentially as a function of aspect, slope, and roughness. 
+Here, the log-linear intensity function imposes another assumption, that intensity increases or decreases exponentially as a function of aspect, slope, and roughness.
 
-Aspect was defined as a 1 for northfacing areas and 0 for south facing areas. The coefficients $\beta$ represent the expected increase in log-intensity for a 1 unit increase in the corresponding variable (aspect, roughness, slope). $\beta$ with large magnitude represent strong underlying relationships with terrain covariates for a given species, while $\beta$ close to 0 indicate that the species is relatively unaffected by the terrain covariate.  
+The intercept term, $\beta_0$ represents the baseline log-intensity of occurance per unit area. The coefficients $\beta_i$ represent the expected increase in log-intensity for a 1 unit increase in the corresponding variable (aspect, roughness, slope), holding all others constant. $\beta_i$ with large magnitude represent strong underlying relationships with terrain covariates for a given species, while $\beta_i$ close to 0 indicate that the species is relatively unaffected by the terrain covariate. Since the relationship between terrain covariates and intensity is log-linear, coefficients must be interpreted differently from coefficients when the relationship is linear. Rather than an additive relationship, coefficients in log-linear regression are multiplicative. The exponent of each coefficient represents the relative change to the baseline intensity when the corresponding covariate increases by 1. $(\exp{\beta_i} - 1)*100$ represents the impact of the corresponding covariate in terms of the percentage change to the baseline intensity. For example, if $\beta = 0.5$, then $(\exp{0.5} - 1)*100 = 64.87$ indicates a 64% increase in intensity, relative to the baseline intensity, for a one unit increase in the corresponding covariate, holding all others constant. 
 
 The model coefficients then represent estimates of the relationship between a species presence at a given location with observed terrain characteristics. For the context of understanding the individual terrain preferences of a species, the magnitude of the estimated coefficients represent the relative importance of a particular terrain covariate. For example, a species with a large estimated coefficient on aspect is more likely to grow on a north facing slope. To identify species which will grow well on any given terrain, species with low-magnitude coefficients should be prioritized.
 
-# Limitations
+## Limitations
 
 There is likely some large violation of the assumption of point-wise independence. From visual investigation of flower observations, there is evidence of some clustering, especially with respect to those species with limited observations. We recommend limiting inferences from this modeling approach to species with many observations that don't appear to violate the assumption of independence. Although not considered here, Ripley's K-function can quantify the degree of clustering for a given species. 
 
@@ -148,13 +131,92 @@ Additionally, interaction terms were not considered in these models, although th
 
 # Results
 
-Given the sparsity of some the species, we limit inferences from the modeling approach to species with greater than 50 observations. 
+## Spatial distribution of species
 
-```{r}
-load("flower_df_final.RData")
+In the context of providing supplemental nutrition for parasitoids, highly-prevalent flowers are most important. The mean observation count with respect to each species was 489, and the median was 469. Therefore, species which were observed fewer than 50 times are relatively rare and would likely be poor candidates for nutritional supplementation, given their sparse natural occurrence. Additionally, species with low observation counts tended to cluster, violating the independence assumption of the poisson point process models. Here, we limit inferences from the poisson point process modeling approach to species with greater than 50 observations, but the results of the poisson-point process models should be further investigated for validity before drawing conclusions. 
 
-print(flower_inf_50)
+```{r, fig.cap= "Intensity surface for Lactuca pulchella. Observed points do not align with the estimated intensity surface, strong evidence of clustering.", echo = FALSE}
+ temp <- filter(flowers, Spp == "Lactuca pulchella")
+  temp_ppp <- ppp(temp$X, temp$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+  model <- ppm(temp_ppp, ~  aspect + roughness + slope, data = data_list)
+  plot.ppm(model, plot.it = TRUE, how = c("image"), cif = FALSE, se = FALSE, trend = TRUE, main = paste0("Fitted Trend : Lactuca pulchella"))
 ```
+
+
+```{r, fig.cap= "Intensity surface for Aster falcatus. Observed points align well with estimated intensity surface, little to no evidence of clustering.", echo = FALSE}
+ temp <- filter(flowers, Spp == "Aster falcatus")
+  temp_ppp <- ppp(temp$X, temp$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+  model <- ppm(temp_ppp, ~  aspect + roughness + slope, data = data_list)
+  plot.ppm(model, plot.it = TRUE, how = c("image"), cif = FALSE, se = FALSE, trend = TRUE, main = paste0("Fitted Trend : Aster falcatus"))
+```
+
+Figures 3.1 and 3.2 demonstrate poisson point process models which do and do not violate the assumption of independence, respectively. Coefficient estimates on terrain covariates may be misleading for species in which the assumption of independence was violated. Intensity plots for all species investigated are included in the appendix. 
+
+## Temporal Flowering Patterns
+
+For the consideration of a flower's temporal occurrence, growing degree days (GDD) was considered in place of date. Since yearly climate fluctuations impact the relative timing of the growing season each year, GDD provides an alternative measure of timing within a growing season that is comparable between years. Growing degree days were calculated starting after the yearly "green-up" date, March 21st and March 18th in 2019 and 2020, respectively. For each day, the positive differences between the daily mean and a threshold temperature ($0^\circ C$ and $4^\circ C$) was aggregated through time. The GDD measurement for a given date is the sum of all the previous positive differences (daily mean temperature - 0 or 4$^\circ C$) and the difference for the given day, if positive. Days with mean temperatures below the threshold do not contribute to GDD measurements. 
+
+In the context of supplemental nutrition for parasitoids, species which occur in limited temporal ranges (in terms of GDD) are less useful than species which occur across wide temporal ranges. Therefore, the investigation of temporal occurrences was limited to species observed on 2 or more survey dates. Figures 3.3 and 3.4 display the observed species occurrences against growing degree days with a threshold temperature of $0^\circ C$ for 2019 and 2020, respectively. Between survey dates, flower occurrences were interpolated with a linear trend for easier observation of temporal trends. Plots using a growing degree day threshold of $4^\circ C$ are included in the appendix. 
+
+```{r, fig.cap = "Plots of species occurrence in 2019 vs GDD using a threshold temperature of 0 degrees", echo = FALSE}
+gdd_0_2019
+```
+
+```{r, fig.cap = "Plots of species occurrence in 2020 vs GDD using a threshold temperature of 0 degrees", echo = FALSE}
+gdd_0_2020
+```
+
+Notably, some species which were observed on two or more survey dates in 2019 were not observed on at least two survey dates in 2020 and vice-versa. This discrepancy highlights a high degree of unmeasured inter-annual variability in the growing conditions necessary for each species to flower. For accurate insights as to the temporal occurrence of these species, it may be necessary to consider other sources of information (e.g. seasonal rainfall), or conduct further surveys in future growing seasons.  
+
+# Spatially and Temporally Relevant Species
+
+Between the spatial and temporal considerations of species, two "filters" were applied in terms of relevance. First, spatial inferences were limites to those species which were observed at 50 or more sites throughout the survey area. Second, temporal considerations were limited to those species which were observed on two or more survey dates in either 2019 or 2020. These constraints limit the number of species considered for supplemental parasitoid nutrition to 21. Table 1 presents these species and relevant information including the spatial covariate coefficients on a percentage scale. These coefficients should be interpreted as the percent change to the baseline expected rate of occurrence per unit area for a one unit increase in the relevant covariate. For example, Artemisa cana has an expected baseline rate of 0.0028245 (X.Intercept.) flowers per unit area when aspect, roughness, and slope are 0. However, holding the other covariates constant, for a site with an aspect of 1 (North facing), the expected rate of Artemisa cana occurrences decreases by 3.87%. Similarly, with all other covariates held constant a 1 unit increase in roughness decreases the expected rate of Artemisa cana occurances by 4.22%. Finally, holding all other covariates constant, a 1 unit increase in slope increases the expected rate of Artemisa cana occurances by 7.81%. 
+
+```{r, echo = FALSE}
+kable(flower_inf_50, digits = 2)
+```
+
+Table 1: Table of relevant species information including whether or not it is native or produces extra-floral nectar, as well as the number of observations within the survey area, and the poisson point process coefficients in terms of the percent change in expected rate of occurance for a one unit increase in the corresponding covariate, holding other covariates constant.  
+
+Between the growing degree day plots and Table 1, candidate species may be identified for potential utility parasitoid nutritional supplementation based on when they tend to flower in terms of GDD and their terrain preferences.
+
+# Appendix 
+
+```{r, echo = FALSE}
+flower_ppp <- ppp(flowers$X, flowers$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+
+# Loop for ppm by species
+
+
+j <- 0
+for(i in unique(filtered_spp$Spp)){
+  j = j + 1
+  
+  temp <- filter(flowers, Spp == i)
+  temp_ppp <- ppp(temp$X, temp$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+  model <- ppm(temp_ppp, ~  aspect + roughness + slope, data = data_list)
+  assign(paste(i, "model"), model)
+  plot.ppm(get(paste(i, "model")), plot.it = TRUE, how = c("image"), cif = FALSE, se = FALSE, trend = TRUE, main = paste0("Fitted Trend : ", i))
+  
+
+}
+
+
+gdd_4_2019
+
+gdd_4_2020
+```
+
+
+
+
+
+
+
+
+
+
+
 
 
 # Packages used
@@ -173,6 +235,9 @@ The R package `bookdown` [@R-bookdown] was used to create this report document u
 - `ggplot2` [@R-ggplot2]
 - `effects` [@R-effects]
 - `predictmeans` [@R-predictmeans]
+- `kableExtra` [@R-kableExtra]
+- `ggridges` [@R-ggridges]
+- `spatstat` [@R-spatstat]
 
 # References
 
