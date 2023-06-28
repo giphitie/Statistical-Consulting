@@ -1,0 +1,353 @@
+---
+title: "Sawfly Flowers"
+author: "Will Hammond"
+date: "3/31/2023"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set( echo = FALSE, warning = FALSE, message = FALSE, fig.width=9, fig.height=6)
+```
+
+```{R, echo = FALSE, warning = FALSE, message = FALSE}
+library(readxl)
+library(stringr)
+library(lubridate)
+library(readr)
+library(tidyverse)
+library(kableExtra)
+library(ggridges)
+
+# Load Data - Change Directory for use
+points_terrain <- read_xlsx("C:/Users/Ya Boi Willy/Downloads/StatsSemData/flowers/pointsAndTerrain_tbl.xlsx")
+weather <- read.csv("StatsSemData/weather/MT_Mesonet_havrenmt_daily_data.csv")
+names(weather) <- c("station", "datetime", "Air.Temperature", "Precipitation", "SoilTemp0in", "SoilTemp4in","SoilTemp8in","SoilTemp20in","SoilTemp36in")
+species_key <- read_xlsx("C:/Users/Ya Boi Willy/Downloads/StatsSemData/flowers/SpeciesList.xlsx", sheet = 1, skip = 1)
+species_key <- species_key[,c(2, 4:8)]
+
+# Add Species Key
+flowers <- merge(points_terrain, species_key, by.x = c("Spp"), by.y = c("Species"), all.x = TRUE)
+
+#Remove "rocks" and "Check points"
+flowers <- flowers %>% filter(Spp != "rocks" & Spp != "check points")
+
+
+# Days observed in each year Aggregate
+Daycounts <- flowers %>% mutate(ind = 1)
+Daycounts <- Daycounts %>% subset(select = c("Spp", "Date", "ind")) %>% unique()
+Daycounts <- Daycounts %>% mutate(year = year(Date))
+Daycounts <- aggregate(Daycounts$ind, by = list(Daycounts$Spp, Daycounts$year), FUN = sum)
+names(Daycounts) <- c("Spp", "Year", "Day_Count")
+Daycounts_2019 <- Daycounts %>% filter(Year == 2019) %>% subset(select = c("Spp", "Day_Count"))
+names(Daycounts_2019) <- c("Spp", "Daycount_2019")
+Daycounts_2020 <- Daycounts %>% filter(Year == 2020) %>% subset(select = c("Spp", "Day_Count"))
+names(Daycounts_2020) <- c("Spp", "Daycount_2020") 
+
+Daycounts <- merge(Daycounts_2019, Daycounts_2020, by = c("Spp"), all = TRUE)
+
+flowers <- merge(flowers, Daycounts, by = "Spp")
+
+# Quantitiy Aggregate
+quant_counts <- flowers
+quant_counts <- quant_counts %>% subset(select = c("Spp", "Date", "Qt")) %>% unique()
+quant_counts$Qt <- as.numeric(quant_counts$Qt)
+quant_counts <- aggregate(quant_counts$Qt, by = list(quant_counts$Spp, quant_counts$Date), FUN = sum)
+names(quant_counts) <- c("Spp", "Date", "quant_count")
+
+flowers <- merge(flowers, quant_counts, by = c("Spp", "Date"))
+
+# Unique Sites Aggregate
+site_counts <- flowers %>% mutate(ind = 1)
+site_counts <- site_counts %>% subset(select = c("Spp", "Date", "ind"))
+site_counts <- aggregate(site_counts$ind, by = list(site_counts$Spp, site_counts$Date), FUN = sum)
+names(site_counts) <- c("Spp", "Date", "site_count")
+
+flowers <- merge(flowers, site_counts, by = c("Spp", "Date"))
+
+
+# Unique Sites (total) Aggregate
+site_counts_total <- flowers %>% mutate(ind = 1)
+site_counts_total <- site_counts_total %>% subset(select = c("Spp", "ind"))
+site_counts_total <- aggregate(site_counts_total$ind, by = list(site_counts_total$Spp), FUN = sum)
+names(site_counts_total) <- c("Spp", "site_count_total")
+
+flowers <- merge(flowers, site_counts_total, by = c("Spp"))
+
+
+#Add a year variable, mutate date
+flowers <- flowers %>% mutate(year = year(Date),
+                              Date = ymd(Date))
+
+# Rename the conservation score variable 
+names(flowers)[18] <- c("C_score")
+
+# Get GDD
+
+#mutate
+weather <- weather %>% mutate(year = year(mdy(datetime)),
+                              Date = mdy(datetime))
+
+# Temperature measurements MISSING in 2019 
+ # 6-23-2019 to 6-26-2019
+ # 6-28-2019 and 6-29-2019
+ # From 7-1-2019 to 7-5-2019.
+ # 7-7-2019 and 7-8-2019
+ # 7-11-2019
+
+weather_temp <- weather %>% filter(month(Date) == 6 & year(Date) == 2019)
+june_2019_air <- mean(weather_temp$Air.Temperature)
+weather_temp <- weather %>% filter(month(Date) == 7 & year(Date) == 2019)
+july_2019_air <- mean(weather_temp$Air.Temperature)
+
+Date <- c("6-23-2019","6-24-2019","6-25-2019","6-26-2019","6-28-2019","6-29-2019",
+          "7-1-2019","7-2-2019","7-3-2019","7-4-2019","7-5-2019", "7-7-2019", "7-8-2019",
+          "7-11-2019")
+
+Date <- mdy(Date)
+year <- year(Date)
+Air.Temperature <- c(june_2019_air,june_2019_air,june_2019_air,june_2019_air,june_2019_air,june_2019_air,
+                     july_2019_air, july_2019_air,july_2019_air,july_2019_air,july_2019_air,july_2019_air,july_2019_air,
+                     july_2019_air)
+
+weather_impute <- data.frame(Date, Air.Temperature, year)
+
+weather <- merge(weather, weather_impute, all = TRUE)
+
+weather <- weather %>% mutate(gdd0 = 0, gdd4 = 0)
+
+
+
+ 
+
+#split into years
+weather19 <- weather %>% filter(year == 2019)
+weather20 <- weather %>% filter(year == 2020)
+
+weather19$gdd0 <- if_else(weather19$Air.Temperature > 0 , weather19$Air.Temperature, 0)
+weather19$gdd4 <- if_else(weather19$Air.Temperature > 4 , weather19$Air.Temperature, 0)
+
+weather20$gdd0 <- if_else(weather20$Air.Temperature > 0 , weather20$Air.Temperature, 0)
+weather20$gdd4 <- if_else(weather20$Air.Temperature > 4 , weather20$Air.Temperature, 0)
+
+
+for(i in 2:nrow(weather19)){
+  if(weather19$Date[i] > mdy("3/21/2019")){
+    weather19$gdd0[i] <- weather19$gdd0[i-1] + weather19$gdd0[i]
+  }else{
+    weather19$gdd0[i] <-  0
+  }
+  if(weather19$Date[i] > mdy("3/21/2019")){
+    weather19$gdd4[i] <- weather19$gdd4[i-1] + weather19$gdd4[i]
+  }else{
+    weather19$gdd4[i] <-  0
+  }
+}
+
+for(i in 2:nrow(weather20)){
+  if(weather20$Date[i] > mdy("3/18/2020")){
+    weather20$gdd0[i] <- weather20$gdd0[i-1] + weather20$gdd0[i]
+  }else{
+    weather20$gdd0[i] <-  0
+  }
+  if(weather20$Date[i] > mdy("3/18/2019")){
+    weather20$gdd4[i] <- weather20$gdd4[i-1] + weather20$gdd4[i]
+  }else{
+    weather20$gdd4[i] <-  0
+  }
+}
+
+#merge 
+weather <- rbind(weather19, weather20)
+#merge
+flowers <- merge(flowers, weather, by = c("Date", "year"))
+
+# Filter to "robust" species
+flowers_filtered19 <- flowers %>% filter(Daycount_2019 >= 2,
+                                        year == 2019)
+
+flowers_filtered20 <- flowers %>% filter(Daycount_2020 >= 2,
+                                       year == 2020)
+
+
+yaxis <- c(max(flowers_filtered19$site_count))
+
+
+## Ridgeline Temporal Plots
+
+#Site Quantity
+gdd_0_2019 <- ggplot(flowers_filtered19, aes(x = gdd0,y = "Occurance Count" , height = site_count, fill = gdd0))+geom_ridgeline_gradient(stat = "identity", scale = 1)+facet_wrap(~Spp)+
+  ggtitle("2019 Occurance Ridgelines By Species, Gdd0")+labs(x = "GDD, Threshold 0", y = "")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 7))
+
+gdd_4_2019 <- ggplot(flowers_filtered19, aes(x = gdd4,y = "Occurance Count" , height = site_count, fill = gdd4))+geom_ridgeline_gradient(stat = "identity", scale = 1)+facet_wrap(~Spp)+
+  ggtitle("2019 Occurance Ridgelines By Species, Gdd4")+labs(x = "GDD, Threshold 4", y = "")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 7))
+
+gdd_0_2020 <- ggplot(flowers_filtered20, aes(x = gdd0,y = "Occurance Count" , height = site_count, fill = gdd0))+geom_ridgeline_gradient(stat = "identity", scale = 1)+facet_wrap(~Spp)+
+  ggtitle("2020 Occurance Ridgelines By Species, Gdd0")+labs(x = "GDD, Threshold 0", y = "")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 7))
+
+gdd_4_2020 <-ggplot(flowers_filtered20, aes(x = gdd4,y = "Occurance Count" , height = site_count, fill = gdd4))+geom_ridgeline_gradient(stat = "identity", scale = 1)+facet_wrap(~Spp)+
+  ggtitle("2020 Occurance Ridgelines By Species, Gdd4")+labs(x = "GDD, Threshold 4", y = "")+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), strip.text.x = element_text(size = 7))
+
+
+```
+# Spatial Analysis
+
+```{r}
+flowers <- dplyr::filter(flowers, ID != "0610200569L")
+
+vis_plot <- ggplot(flowers, aes(x = X, y = Y, color = Spp ))+geom_point()+theme(legend.position="none")+ggtitle("Flower Observations by Location")
+
+vis_plot
+```
+
+# Poisson Process
+
+```{r}
+library(raster)
+library(spatstat)
+library(maptools)
+library(sp)
+
+map_data <- readShapeSpatial("C:/Users/Ya Boi Willy/Downloads/StatsSemData/terrain/5m_grid.shp") 
+class(map_data)
+
+y <- as(map_data, "SpatialPolygons")
+e <- extent(y)
+
+
+roughness <- raster("C:/Users/Ya Boi Willy/Downloads/StatsSemData/terrain/5m_32612/Roughness5M_12N.tif")
+roughness <- crop(roughness, e)
+
+slope <- raster("C:/Users/Ya Boi Willy/Downloads/StatsSemData/terrain/5m_32612/Slope5M_12N.tif")
+slope <- crop(slope, e)
+
+aspect <- raster("C:/Users/Ya Boi Willy/Downloads/StatsSemData/terrain/5m_32612/Aspect5M_12N.tif")
+aspect <- crop(aspect, e)
+aspect[aspect < 90 ] = 1
+aspect[aspect > 270] = 1
+aspect[aspect != 1] = 0
+
+
+# Finally, we create the .im object
+roughness.img <- as.im.RasterLayer(roughness)
+slope.img <- as.im.RasterLayer(slope)
+aspect.img <- as.im.RasterLayer(aspect)
+
+
+data_list <- list("roughness" = roughness.img,
+                  "slope" = slope.img,
+                  "aspect" = aspect.img)
+
+
+
+
+library(spatstat)
+flower_ppp <- ppp(flowers$X, flowers$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+
+plot(flower_ppp)
+
+
+# Filter Species
+filtered_spp <- flowers %>% filter(site_count_total >= 50) %>% subset(select = c("Spp"))
+
+
+# Loop for ppm by species
+model_coefs <- list()
+j <- 0
+for(i in unique(filtered_spp$Spp)){
+  j = j + 1
+  
+  temp <- filter(flowers, Spp == i)
+  temp_ppp <- ppp(temp$X, temp$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+  model <- ppm(temp_ppp, ~  aspect + roughness + slope, data = data_list)
+  assign(paste(i, "model"), model)
+  plot.ppm(get(paste(i, "model")), plot.it = TRUE, how = c("image"), cif = FALSE, se = FALSE, trend = TRUE, main = paste0("Fitted Trend : ", i))
+  
+  model_coefs[[j]] <- coef(model)
+  names(model_coefs)[[j]] <- i
+
+}
+
+# Save Model coefficients
+
+coef_df <- data.frame(do.call(rbind, model_coefs))
+coef_df <- coef_df %>% mutate(Spp = row.names(coef_df))
+
+
+
+
+ 
+  
+
+
+```
+
+```{rfig.cap= "Intensity surface for Lactuca pulchella. Observed points do not align with the estimated intensity surface, strong evidence of clustering."}
+ temp <- filter(flowers, Spp == "Lactuca pulchella")
+  temp_ppp <- ppp(temp$X, temp$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+  model <- ppm(temp_ppp, ~  aspect + roughness + slope, data = data_list)
+  assign(paste(i, "model"), model)
+  plot.ppm(get(paste(i, "model")), plot.it = TRUE, how = c("image"), cif = FALSE, se = FALSE, trend = TRUE, main = paste0("Fitted Trend : Lactuca pulchella"))
+```
+
+
+```{r, fig.cap= "Intensity surface for Aster falcatus. Observed points align well with estimated intensity surface, little to no evidence of clustering."}
+ temp <- filter(flowers, Spp == "Aster falcatus")
+  temp_ppp <- ppp(temp$X, temp$Y, c(min(flowers$X), max(flowers$X)), c(min(flowers$Y), max(flowers$Y)))
+  model <- ppm(temp_ppp, ~  aspect + roughness + slope, data = data_list)
+  assign(paste(i, "model"), model)
+  plot.ppm(get(paste(i, "model")), plot.it = TRUE, how = c("image"), cif = FALSE, se = FALSE, trend = TRUE, main = paste0("Fitted Trend : Aster falcatus"))
+```
+
+```{r}
+gdd_0_2019
+```
+
+```{r}
+gdd_0_2020
+```
+
+ 
+
+```{r}
+
+# Add coefficients to dataframe and transform to % scale
+flower_inf <- merge(flowers, coef_df, by =c("Spp")) %>% 
+  mutate(X.Intercept. = exp(X.Intercept.),
+         aspect = (exp(aspect)-1)*100,
+         roughness = (exp(roughness)-1)*100,
+         slope = (exp(slope)-1)*100) 
+
+
+# Filter According to constraints
+flower_inf_50 <- filter(flower_inf, site_count_total >50,
+                        Daycount_2020 >= 2 | Daycount_2020 >=2) %>% 
+  subset(select = c("Spp","site_count_total", "X.Intercept.", "aspect", "roughness", "slope"))
+
+# Get unique species information
+flower_inf_50 <- unique(flower_inf_50)
+
+# Order by aspect coefficient impact
+flower_inf_50 <- flower_inf_50 %>% arrange((aspect)) 
+
+# Print table
+kable(flower_inf_50, digits = 2)
+
+
+```
+
+```{r}
+
+# Save objects into .RData for use in report. 
+
+save(flower_inf_50, flowers, gdd_0_2019, gdd_4_2019, gdd_0_2020, gdd_4_2020, data_list, filtered_spp, vis_plot, file = "flower_df_final.RData")
+```
+
+
+
+

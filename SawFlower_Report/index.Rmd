@@ -38,7 +38,6 @@ site: bookdown::bookdown_site
 documentclass: article
 ---
 
-
 ```{r import, echo = FALSE}
 # Some other useful knitr options:
 # fig.retina: multiplicative factor for figures' resolution
